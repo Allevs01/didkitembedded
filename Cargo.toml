@@ -1,9 +1,12 @@
 [package]
-name = "testiamo_sol"
+name = "didkemb"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[target.armv7-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc"
 
 [dependencies]
 async-trait = "0.1.80"
@@ -14,9 +17,48 @@ tokio = { version = "1", features = ["full"] }
 uuid = { version = "1.8.0", features = ["v4"] }
 anyhow = "1.0.62"
 ssi-dids = {version = "0.1.1", features = ["example"]}
+psutil = "3.3.0"
+num_cpus = "1.16.0"
+sysinfo = "0.30.13"
 
-[build]
-target = "armv7-unknown-linux-gnueabihf"
+[[bin]]
+name = "10claim"
+path = "src/10claim.rs"
 
-[target.armv7-unknown-linux-gnueabihf]
-linker = "arm-linux-gnueabihf-gcc"
+[[bin]]
+name = "20claim"
+path = "src/20claim.rs"
+
+[[bin]]
+name = "30claim"
+path = "src/30claim.rs"
+
+[[bin]]
+name = "40claim"
+path = "src/40claim.rs"
+
+[[bin]]
+name = "50claim"
+path = "src/50claim.rs"
+
+[[bin]]
+name = "60claim"
+path = "src/60claim.rs"
+
+[[bin]]
+name = "70claim"
+path = "src/70claim.rs"
+
+[[bin]]
+name = "80claim"
+path = "src/80claim.rs"
+
+[[bin]]
+name = "90claim"
+path = "src/90claim.rs"
+
+[[bin]]
+name = "100claim"
+path = "src/100claim.rs"
+
+
