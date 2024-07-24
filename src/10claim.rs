@@ -9,6 +9,7 @@ use ssi_dids::did_resolve::{
 };
 
 use std::env;
+use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 
@@ -73,6 +74,8 @@ async fn main()-> Result<(), Box<dyn std::error::Error>>{
     //println!("{:#?}", vc1);
     let stdout_writer = std::io::BufWriter::new(std::io::stdout());
     serde_json::to_writer_pretty(stdout_writer, &vc1).unwrap();
+
+    sleep(Duration::from_secs(5));
 
 
     Ok(())
