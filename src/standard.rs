@@ -1,4 +1,3 @@
-#![recursion_limit = "256"]
 use std::time::{Duration, Instant};
 
 use psutil::process::Process;
@@ -14,6 +13,9 @@ use ssi_dids::did_resolve::{
 
 #[tokio::main]
 async fn main()-> Result<(), Box<dyn std::error::Error>>{
+    // Ottieni il PID del processo corrente
+    let pid = std::process::id() as i32;
+    let process = Process::new(pid.try_into().unwrap()).expect("Failed to create process");
     let key_str = include_str!("../chiave_str.json");
     //funzione per creare vc prendo key, resolver, did_issuer, verification method
     let key: ssi::jwk::JWK = serde_json::from_str(key_str).unwrap();
@@ -52,47 +54,7 @@ async fn main()-> Result<(), Box<dyn std::error::Error>>{
             "claim17": "value 17",
             "claim18": "value 18",
             "claim19": "value 19",
-            "claim20": "value 20",
-            "claim21": "value 21",
-            "claim22": "value 22",
-            "claim23": "value 23",
-            "claim24": "value 24",
-            "claim25": "value 25",
-            "claim26": "value 26",
-            "claim27": "value 27",
-            "claim28": "value 28",
-            "claim29": "value 29",
-            "claim30": "value 30",
-            "claim31": "value 31",
-            "claim32": "value 32",
-            "claim33": "value 33",
-            "claim34": "value 34",
-            "claim35": "value 35",
-            "claim36": "value 36 ",
-            "claim37": "value 37",
-            "claim38": "value 38",
-            "claim39": "value 39",
-            "claim40": "value 40",
-            "claim41": "value 41",
-            "claim42": "value 42",
-            "claim43": "value 43",
-            "claim44": "value 44",
-            "claim45": "value 45",
-            "claim46": "value 46",
-            "claim47": "value 47",
-            "claim48": "value 48",
-            "claim49": "value 49",
-            "claim50": "value 50",
-            "claim51": "value 51",
-            "claim52": "value 52",
-            "claim53": "value 53",
-            "claim54": "value 54",
-            "claim55": "value 55",
-            "claim56": "value 56",
-            "claim57": "value 57",
-            "claim58": "value 58",
-            "claim59": "value 59",
-            "claim60": "value 60"
+            "claim20": "value 20"
         }
     });
     let mut vc: ssi::vc::Credential = serde_json::from_value(vc).unwrap();
@@ -105,6 +67,14 @@ async fn main()-> Result<(), Box<dyn std::error::Error>>{
     proof_options.created = None;
     proof_options.checks = None;
 
+    let mut total_duration = Duration::new(0, 0);
+    
+    // Misura l'utilizzo iniziale della CPU e della memoria
+    let initial_cpu_time = process.cpu_times().expect("Failed to get CPU times").user();
+    let initial_memory = process.memory_info().expect("Failed to get memory info").rss();
+
+    let start_time = Instant::now();
+
     jwt = vc
         .generate_jwt(Some(&key), &proof_options, resolver)
         .await
@@ -114,11 +84,54 @@ async fn main()-> Result<(), Box<dyn std::error::Error>>{
     if !result.errors.is_empty() {
         panic!("verify failed: {:?}", result);
     }
+    let duration2 = start_time.elapsed();
+
+    // Misura l'utilizzo finale della CPU e della memoria
+    let final_cpu_time = process.cpu_times().expect("Failed to get CPU times").user();
+    let final_memory = process.memory_info().expect("Failed to get memory info").rss();
+
+    // Calcola l'utilizzo della CPU e della memoria
+    let cpu_usage = final_cpu_time - initial_cpu_time;
+    let memory_usage = final_memory - initial_memory;
+    
+    //start
+    for i in 0..10 {
+    let start_time = Instant::now();
+
+    jwt = vc
+        .generate_jwt(Some(&key), &proof_options, resolver)
+        .await
+        .unwrap();
+    let result =
+        ssi::vc::Credential::verify_jwt(&jwt, None, resolver, &mut context_loader).await;
+    if !result.errors.is_empty() {
+        panic!("verify failed: {:?}", result);
+    }
+
+    let end_time = Instant::now();
+    //end
+
+    let duration = end_time.duration_since(start_time);
+    let duration2 = start_time.elapsed();
+    total_duration += duration;
+
+    }
+    
+    // Calcola la media della durata in millisecondi
+    let total_duration_millis = total_duration.as_millis();
+    let average_duration_millis = total_duration_millis as f64 / 10.0;
+
     print!("{}", jwt);
     let vc1 = ssi::vc::Credential::from_jwt(&jwt, &key).unwrap();
     //println!("{:#?}", vc1);
     let stdout_writer = std::io::BufWriter::new(std::io::stdout());
     serde_json::to_writer_pretty(stdout_writer, &vc1).unwrap();
+
+    println!("Average duration in ms: {}", average_duration_millis);
+    let jwt_asbytes = jwt.as_bytes();
+    println!("Bytes taken by vc: {:?}", jwt_asbytes.len());
+    println!("Utilizzo CPU: {:?} secondi", cpu_usage);
+    println!("Utilizzo memoria: {:?} byte", memory_usage);
 
     Ok(())
 }

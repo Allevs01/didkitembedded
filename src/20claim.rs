@@ -13,9 +13,6 @@ use ssi_dids::did_resolve::{
 
 #[tokio::main]
 async fn main()-> Result<(), Box<dyn std::error::Error>>{
-    // Ottieni il PID del processo corrente
-    let pid = std::process::id() as i32;
-    let process = Process::new(pid.try_into().unwrap()).expect("Failed to create process");
     let key_str = include_str!("../chiave_str.json");
     //funzione per creare vc prendo key, resolver, did_issuer, verification method
     let key: ssi::jwk::JWK = serde_json::from_str(key_str).unwrap();
@@ -67,13 +64,6 @@ async fn main()-> Result<(), Box<dyn std::error::Error>>{
     proof_options.created = None;
     proof_options.checks = None;
 
-    let mut total_duration = Duration::new(0, 0);
-    
-    // Misura l'utilizzo iniziale della CPU e della memoria
-    let initial_cpu_time = process.cpu_times().expect("Failed to get CPU times").user();
-    let initial_memory = process.memory_info().expect("Failed to get memory info").rss();
-
-    let start_time = Instant::now();
 
     jwt = vc
         .generate_jwt(Some(&key), &proof_options, resolver)
@@ -84,54 +74,11 @@ async fn main()-> Result<(), Box<dyn std::error::Error>>{
     if !result.errors.is_empty() {
         panic!("verify failed: {:?}", result);
     }
-    let duration2 = start_time.elapsed();
-
-    // Misura l'utilizzo finale della CPU e della memoria
-    let final_cpu_time = process.cpu_times().expect("Failed to get CPU times").user();
-    let final_memory = process.memory_info().expect("Failed to get memory info").rss();
-
-    // Calcola l'utilizzo della CPU e della memoria
-    let cpu_usage = final_cpu_time - initial_cpu_time;
-    let memory_usage = final_memory - initial_memory;
-    
-    //start
-    for i in 0..10 {
-    let start_time = Instant::now();
-
-    jwt = vc
-        .generate_jwt(Some(&key), &proof_options, resolver)
-        .await
-        .unwrap();
-    let result =
-        ssi::vc::Credential::verify_jwt(&jwt, None, resolver, &mut context_loader).await;
-    if !result.errors.is_empty() {
-        panic!("verify failed: {:?}", result);
-    }
-
-    let end_time = Instant::now();
-    //end
-
-    let duration = end_time.duration_since(start_time);
-    let duration2 = start_time.elapsed();
-    total_duration += duration;
-
-    }
-    
-    // Calcola la media della durata in millisecondi
-    let total_duration_millis = total_duration.as_millis();
-    let average_duration_millis = total_duration_millis as f64 / 10.0;
-
     print!("{}", jwt);
     let vc1 = ssi::vc::Credential::from_jwt(&jwt, &key).unwrap();
     //println!("{:#?}", vc1);
     let stdout_writer = std::io::BufWriter::new(std::io::stdout());
     serde_json::to_writer_pretty(stdout_writer, &vc1).unwrap();
-
-    println!("Average duration in ms: {}", average_duration_millis);
-    let jwt_asbytes = jwt.as_bytes();
-    println!("Bytes taken by vc: {:?}", jwt_asbytes.len());
-    println!("Utilizzo CPU: {:?} secondi", cpu_usage);
-    println!("Utilizzo memoria: {:?} byte", memory_usage);
 
     Ok(())
 }

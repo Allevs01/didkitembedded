@@ -56,19 +56,6 @@ async fn main()-> Result<(), Box<dyn std::error::Error>>{
     
     proof_options.created = None;
     proof_options.checks = None;
-    let mut total_duration = Duration::new(0, 0);
-
-    let mut sys = System::new_all();
-
-    // Aggiorna le informazioni di sistema
-    sys.refresh_all();
-    // Ottieni il PID del processo corrente e convertilo in un Pid
-    let pid = Pid::from(std::process::id() as usize);
-
-    // Ottieni le informazioni sul processo prima dell'esecuzione della funzione
-    let process_before = sys.process(pid).expect("Process not found");
-    let cpu_usage_before = process_before.cpu_usage();
-    let start_time = Instant::now();
 
     jwt = vc
         .generate_jwt(Some(&key), &proof_options, resolver)
@@ -80,48 +67,6 @@ async fn main()-> Result<(), Box<dyn std::error::Error>>{
         panic!("verify failed: {:?}", result);
     }
 
-    // Attendere un breve intervallo di tempo per garantire che le informazioni di sistema siano aggiornate
-    std::thread::sleep(Duration::from_millis(100));
-
-    // Aggiorna le informazioni di sistema e ottieni le informazioni sul processo dopo l'esecuzione della funzione
-    sys.refresh_all();
-    let process_after = sys.process(pid).expect("Process not found");
-    let cpu_usage_after = process_after.cpu_usage();
-    let duration = start_time.elapsed();
-
-    // Calcola la differenza nell'utilizzo della CPU
-    let cpu_usage_diff = cpu_usage_after - cpu_usage_before;
-
-    // Calcola la percentuale di utilizzo della CPU durante l'esecuzione della funzione
-    let cpu_percentage = cpu_usage_diff / duration.as_secs_f32() * 100.0;
-
-    
-    //start
-    for i in 0..10 {
-    let start_time = Instant::now();
-
-    jwt = vc
-        .generate_jwt(Some(&key), &proof_options, resolver)
-        .await
-        .unwrap();
-    let result =
-        ssi::vc::Credential::verify_jwt(&jwt, None, resolver, &mut context_loader).await;
-    if !result.errors.is_empty() {
-        panic!("verify failed: {:?}", result);
-    }
-
-    let end_time = Instant::now();
-    //end
-
-    let duration = end_time.duration_since(start_time);
-    let duration2 = start_time.elapsed();
-    total_duration += duration;
-
-    }
-    
-    // Calcola la media della durata in millisecondi
-    let total_duration_millis = total_duration.as_millis();
-    let average_duration_millis = total_duration_millis as f64 / 10.0;
 
     print!("{}", jwt);
     let vc1 = ssi::vc::Credential::from_jwt(&jwt, &key).unwrap();
@@ -129,11 +74,6 @@ async fn main()-> Result<(), Box<dyn std::error::Error>>{
     let stdout_writer = std::io::BufWriter::new(std::io::stdout());
     serde_json::to_writer_pretty(stdout_writer, &vc1).unwrap();
 
-    println!("Average duration in ms: {}", average_duration_millis);
-    let jwt_asbytes = jwt.as_bytes();
-    println!("Bytes taken by vc: {:?}", jwt_asbytes.len());
-    println!("Utilizzo CPU: {:?} ", cpu_percentage);
-    //println!("Utilizzo memoria: {:?} byte", memory_usage);
 
     Ok(())
 }
